@@ -1,0 +1,13 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\customer-api",
+    "\\customer-api\\config",
+    "\\customer-api\\routes",
+    "\\lib",
+    "\\test",
+    "\\windows"
+  ],
+  "SelectedNode": "\\test\\test_odbc.py",
+  "PreviewInSolutionExplorer": false
+}

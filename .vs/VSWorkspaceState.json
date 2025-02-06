@@ -5,9 +5,11 @@
     "\\customer-api\\config",
     "\\customer-api\\routes",
     "\\lib",
+    "\\lib\\screens",
+    "\\lib\\services",
     "\\test",
     "\\windows"
   ],
-  "SelectedNode": "\\test\\test_odbc.py",
+  "SelectedNode": "\\lib\\services\\api_service.dart",
   "PreviewInSolutionExplorer": false
 }

@@ -1,9 +1,19 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart'; // Ensure this is imported
 import 'services/api_service.dart';
-import 'screens/customer_lookup.dart'; // Ensure customer lookup is correctly imported
-import 'screens/customer_detail.dart'; // New page for customer details
+import 'screens/customer_lookup.dart'; 
+import 'screens/customer_detail.dart'; 
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // ✅ Ensures async database services are initialized
+
+  try {
+    String dbPath = await getDatabasesPath();  // Debugging database path
+    print('📂 Database Path: $dbPath');
+  } catch (e) {
+    print('❌ Database Initialization Error: $e');
+  }
+
   runApp(const MyApp());
 }
 

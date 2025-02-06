@@ -1,6 +1,7 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart'; // ✅ Required for Windows/Linux support
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
@@ -15,39 +16,59 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    String dbPath = await getDatabasesPath();
-    return openDatabase(
-      join(dbPath, 'companies.db'),
-      version: 1,
-      onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE companies (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            address TEXT,
-            city TEXT,
-            province TEXT
-          )
-        ''');
-      },
-    );
+    try {
+      // ✅ Required for Windows/Linux support
+      databaseFactory = databaseFactoryFfi;
+
+      String dbPath = await getDatabasesPath();
+      print('📂 Database Path: $dbPath'); // Debugging database path
+
+      return await openDatabase(
+        join(dbPath, 'companies.db'),
+        version: 1,
+        onCreate: (db, version) async {
+          print('✅ Creating database table...');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS companies (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              business_name TEXT NOT NULL,
+              customer_name TEXT NOT NULL,
+              address TEXT,
+              city TEXT,
+              province TEXT,
+              postal_code TEXT,
+              phone_number TEXT,
+              invoice_email TEXT,
+              report_email TEXT,
+              notes TEXT
+            )
+          ''');
+        },
+      );
+    } catch (e) {
+      print('❌ Database Initialization Error: $e');
+      rethrow;
+    }
   }
 
-  // Insert or Replace company data
-  Future<void> insertCompany(Map<String, dynamic> company) async {
+  // ✅ Insert a new customer
+  Future<int> insertCompany(Map<String, dynamic> company) async {
     try {
       final db = await database;
-      await db.insert(
+      int id = await db.insert(
         'companies',
         company,
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
+      print('✅ Customer Inserted: ID $id');
+      return id;
     } catch (e) {
-      throw Exception('Error inserting company: $e');
+      print('❌ Error inserting customer: $e');
+      throw Exception('Error inserting customer: $e');
     }
   }
 
-  // Update company data
+  // ✅ Update an existing customer
   Future<void> updateCompany(Map<String, dynamic> company) async {
     if (!company.containsKey('id')) {
       throw Exception('ID is required for updating a company');
@@ -61,12 +82,14 @@ class DatabaseHelper {
         where: 'id = ?',
         whereArgs: [company['id']],
       );
+      print('✅ Customer Updated: ID ${company['id']}');
     } catch (e) {
+      print('❌ Error updating company: $e');
       throw Exception('Error updating company: $e');
     }
   }
 
-  // Delete a company by ID
+  // ✅ Delete a customer by ID
   Future<void> deleteCompany(int id) async {
     try {
       final db = await database;
@@ -75,31 +98,35 @@ class DatabaseHelper {
         where: 'id = ?',
         whereArgs: [id],
       );
+      print('🗑️ Customer Deleted: ID $id');
     } catch (e) {
+      print('❌ Error deleting company: $e');
       throw Exception('Error deleting company: $e');
     }
   }
 
-  // Fetch company data by name
+  // ✅ Search companies by name
   Future<List<Map<String, dynamic>>> searchCompanies(String query) async {
     try {
       final db = await database;
       return db.query(
         'companies',
-        where: 'name LIKE ?',
-        whereArgs: ['%$query%'],
+        where: 'business_name LIKE ? OR customer_name LIKE ?',
+        whereArgs: ['%$query%', '%$query%'],
       );
     } catch (e) {
+      print('❌ Error searching companies: $e');
       throw Exception('Error searching companies: $e');
     }
   }
 
-  // Fetch all companies
+  // ✅ Fetch all companies
   Future<List<Map<String, dynamic>>> getAllCompanies() async {
     try {
       final db = await database;
       return db.query('companies');
     } catch (e) {
+      print('❌ Error fetching companies: $e');
       throw Exception('Error fetching companies: $e');
     }
   }

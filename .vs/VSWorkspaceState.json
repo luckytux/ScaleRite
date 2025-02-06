@@ -1,15 +1,12 @@
 {
   "ExpandedNodes": [
     "",
-    "\\customer-api",
-    "\\customer-api\\config",
-    "\\customer-api\\routes",
     "\\lib",
     "\\lib\\screens",
     "\\lib\\services",
     "\\test",
     "\\windows"
   ],
-  "SelectedNode": "\\lib\\services\\api_service.dart",
+  "SelectedNode": "\\.gitignore",
   "PreviewInSolutionExplorer": false
 }

@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
-import '../services/api_service.dart'; // Corrected import for API service
-import 'customer_detail.dart'; // Corrected import for customer details page
-
+﻿import 'package:flutter/material.dart';
+import '../services/api_service.dart'; // Import API service
+import 'customer_detail.dart'; // Import customer detail page
+import 'dart:async';
+import '../db_helper.dart'; // Local database helper
 
 class CustomerLookupPage extends StatefulWidget {
   const CustomerLookupPage({super.key});
@@ -12,9 +13,28 @@ class CustomerLookupPage extends StatefulWidget {
 
 class _CustomerLookupPageState extends State<CustomerLookupPage> {
   final TextEditingController _searchController = TextEditingController();
-  final ApiService apiService = ApiService();
   List<Map<String, dynamic>> _searchResults = [];
   bool _isLoading = false;
+  final ApiService apiService = ApiService();
+  final DatabaseHelper dbHelper = DatabaseHelper.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncWithRemoteDatabase();
+  }
+
+  void _syncWithRemoteDatabase() async {
+    try {
+      final customers = await apiService.getCustomers();
+      for (var customer in customers) {
+        await dbHelper.insertOrUpdateCustomer(customer);
+      }
+      print('✅ Local database synced with remote.');
+    } catch (e) {
+      print('⚠️ Sync failed: $e');
+    }
+  }
 
   void _onSearchChanged(String query) async {
     if (query.isEmpty) {
@@ -25,35 +45,24 @@ class _CustomerLookupPageState extends State<CustomerLookupPage> {
     setState(() => _isLoading = true);
 
     try {
-      final results = await apiService.getCustomers();
-      final filteredResults = results.where((customer) {
-        return customer['business_name'].toLowerCase().contains(query.toLowerCase()) ||
-               customer['customer_name'].toLowerCase().contains(query.toLowerCase());
-      }).toList();
-
-      setState(() {
-        _searchResults = filteredResults;
-      });
+      final results = await dbHelper.searchCompanies(query);
+      setState(() => _searchResults = results);
     } catch (e) {
-      _showError('Error fetching customers: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error searching customers: $e')),
+      );
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  void _selectCustomer(Map<String, dynamic> customer) {
+  void _openCustomerDetail([Map<String, dynamic>? customer]) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CustomerDetailPage(customer: customer),
+        builder: (context) => CustomerDetailPage(customer: customer ?? {}),
       ),
-    );
-  }
-
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
+    ).then((_) => setState(() {}));
   }
 
   @override
@@ -89,13 +98,24 @@ class _CustomerLookupPageState extends State<CustomerLookupPage> {
                   itemBuilder: (context, index) {
                     final customer = _searchResults[index];
                     return ListTile(
-                      title: Text(customer['business_name']),
-                      subtitle: Text('${customer['customer_name']} - ${customer['city']}'),
-                      onTap: () => _selectCustomer(customer),
+                      title: Text(customer['business_name'] ?? 'Unknown Business'),
+                      subtitle: Text('${customer['customer_name'] ?? 'Unknown'} - ${customer['city'] ?? 'Unknown'}'),
+                      onTap: () => _openCustomerDetail(customer),
                     );
                   },
                 ),
+              )
+            else
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('No matching customers found',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
               ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => _openCustomerDetail(),
+              child: const Text('Create New Customer'),
+            ),
           ],
         ),
       ),
